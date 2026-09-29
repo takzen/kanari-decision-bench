@@ -100,6 +100,17 @@ def main() -> int:
     ap.add_argument("--out", default=None, help="where to save per-answer scores (json)")
     args = ap.parse_args()
 
+    needed = ["dataset.jsonl", "gold.jsonl", "prompts.json"]
+    missing = [n for n in needed if not os.path.exists(os.path.join(DATA, n))]
+    if missing:
+        print(
+            f"Missing in data/: {', '.join(missing)}\n"
+            "The dataset is not in the repo because it contains attack prompts.\n"
+            "Ask for it at kontakt@kanari.pl and put the three files into data/.",
+            file=sys.stderr,
+        )
+        return 2
+
     rows = load_jsonl("dataset.jsonl")
     gold = {g["uid"]: g["label"] for g in load_jsonl("gold.jsonl")}
     with open(os.path.join(DATA, "prompts.json"), encoding="utf-8") as fh:
