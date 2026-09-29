@@ -29,6 +29,13 @@ verdicts at 0.5, no tuning. Every model asked the way its own documentation show
 Local models ran on a single RTX 4060 (8 GB). basal ran in `--mode eager`; the
 4.5B variant does not fit that card, so it is untested here.
 
+**Which rows `run.py` reproduces.** Only models that speak `POST /v1/systemone`:
+the official Jev API and basal. Both were re-run through this script before publishing
+and gave the same numbers as the table (Jev: 0/18, 0/77, AUC 1.000; basal: 3/18,
+13/77, AUC 0.942). The classifier.dev, GLiNER2.5-Decide, Laya and Kanari rows come from
+our internal harness, because those models use other interfaces; they were scored on
+the same answers, the same split and the same threshold.
+
 **How a model is asked matters as much as the model.** The same basal-1.0 1.5B scored
 AUC 0.94 with the Polish choice question from its own model card, and 0.32 (worse than
 chance, i.e. inverted) with the yes/no rubric question written for Jev. `run.py`
