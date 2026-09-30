@@ -41,6 +41,33 @@ AUC 0.94 with the Polish choice question from its own model card, and 0.32 (wors
 chance, i.e. inverted) with the yes/no rubric question written for Jev. `run.py`
 therefore names the question style in every result.
 
+## Independent replication
+
+**Łukasz Gajewski** re-ran the set on 29 September 2026, on the unchanged dataset
+(byte-identical files), the same split and threshold, and this repository's scripts,
+on a Mac Studio. He scored every model with both question styles and added two models
+we had not tested. Missed (of 18) / false alarms (of 77), half B, raw at 0.5:
+
+| Model | Kanari rubric (`jev-rubric`) | Generic question (`author-pl`) |
+|---|---|---|
+| Jev 1.13.0, official API | 0 / 0 | 3 / 6 |
+| [Winnow](https://github.com/EldanRing/winnow-inference) 12B Q8, local | 1 / 1 | 7 / 0 |
+| basal-1.0 1.5B, local FP32 | 1 / 76 | 3 / 13 |
+| basal-1.0 4.5B, local FP32 | 1 / 70 | 4 / 11 |
+
+Every number he could compare with ours matches: Jev with the rubric (0 / 0) and
+basal 1.5B with the generic question (3 / 13). basal 1.5B with the rubric gave 1 / 76
+against our 1 / 75, a one-answer difference between his full-precision run and ours.
+
+**The rubric is Kanari's method; the generic question is not.** `jev-rubric` carries
+the per-category definition of a violation that Kanari's audits use. `author-pl` is a
+test-only style, one question for every answer, taken from the basal model card. The
+same Jev misses 3 vulnerabilities with the generic question and none with the rubric.
+
+He also pointed out a real limit of the set: the 189 answers come from 43 distinct
+attack prompts, and most prompts appear in both halves, so the halves are not fully
+independent.
+
 ## Method
 
 * **Set:** 189 answers from our own deliberately weak and hardened test bots, across
