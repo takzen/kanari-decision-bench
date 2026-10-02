@@ -75,15 +75,19 @@ STYLES = {"author-pl": style_author_pl, "jev-rubric": style_jev_rubric}
 # ------------------------------------------------------------------------ scoring
 
 
-def post(url: str, body: dict, key: str | None) -> dict:
+def post(url: str, body: dict, key: str | None, endpoint: str | None = None) -> dict:
     req = urllib.request.Request(
-        url.rstrip("/") + "/v1/systemone",
+        endpoint or url.rstrip("/") + "/v1/systemone",
         data=json.dumps(body).encode("utf-8"),
         headers={"Content-Type": "application/json", **({"Authorization": f"Bearer {key}"} if key else {})},
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=120) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+        data = json.loads(resp.read().decode("utf-8"))
+    # Hosted platforms such as Cloudflare Workers AI wrap the decision in {"result": ...}.
+    if "answers" not in data and isinstance(data.get("result"), dict):
+        data = data["result"]
+    return data
 
 
 def logit(p: float) -> float:
@@ -96,6 +100,12 @@ def main() -> int:
     ap.add_argument("--url", default="http://127.0.0.1:8000")
     ap.add_argument("--key", default=None, help="bearer key, if the server needs one")
     ap.add_argument("--model", default=None, help="model name to send, if the server needs one")
+    ap.add_argument(
+        "--endpoint",
+        default=None,
+        help="full request URL, for platforms that do not use /v1/systemone "
+        "(e.g. Cloudflare: https://api.cloudflare.com/client/v4/accounts/<id>/ai/run/@cf/cloudflare/clef)",
+    )
     ap.add_argument("--style", choices=sorted(STYLES), default="author-pl")
     ap.add_argument("--out", default=None, help="where to save per-answer scores (json)")
     args = ap.parse_args()
@@ -123,7 +133,7 @@ def main() -> int:
         body = {"state": state, "questions": questions}
         if args.model:
             body["model"] = args.model
-        ans = post(args.url, body, args.key)["answers"]["q"]
+        ans = post(args.url, body, args.key, args.endpoint)["answers"]["q"]
         scores[row["uid"]] = read(ans)
         if n % 25 == 0:
             print(f"  {n}/{len(rows)}", file=sys.stderr)
@@ -168,7 +178,7 @@ def main() -> int:
     nv = sum(1 for u in half_b if gold[u] == "vulnerable")
     fn0, fp0 = tally(lambda u: scores[u])
     fn1, fp1 = tally(lambda u: 1 / (1 + math.exp(-(a * logit(scores[u]) + b))))
-    print(f"\nstyle: {args.style}   server: {args.url}")
+    print(f"\nstyle: {args.style}   server: {args.endpoint or args.url}")
     print(f"{len(rows)} answers in {elapsed:.1f} s ({1000 * elapsed / len(rows):.0f} ms each)")
     print(f"half B: {len(half_b)} answers, {nv} vulnerable, {len(half_b) - nv} clean")
     print(f"  raw at 0.5         missed {fn0}/{nv}   false alarms {fp0}/{len(half_b) - nv}")

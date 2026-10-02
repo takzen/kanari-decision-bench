@@ -21,6 +21,8 @@ verdicts at 0.5, no tuning. Every model asked the way its own documentation show
 |---|---|---|---|---|
 | Jev, official TypeSafe API | cloud | 0 | 0 | 280 ms |
 | Jev, via classifier.dev | cloud | 0 | 2 | 30 ms |
+| Clef 27B, Cloudflare Workers AI | cloud | 1 | 4 | 555 ms |
+| Clef-flash 9B, Cloudflare Workers AI | cloud | 3 | 2 | 580 ms |
 | basal-1.0 1.5B, R. Kinas | local | 3 | 13 | 130 ms |
 | GLiNER2.5-Decide | local | 3 | 15 | 90 ms |
 | Laya multilingual | local | 2 | 56 | 56 ms |
@@ -29,10 +31,12 @@ verdicts at 0.5, no tuning. Every model asked the way its own documentation show
 Local models ran on a single RTX 4060 (8 GB). basal ran in `--mode eager`; the
 4.5B variant does not fit that card, so it is untested here.
 
-**Which rows `run.py` reproduces.** Only models that speak `POST /v1/systemone`:
-the official Jev API and basal. Both were re-run through this script before publishing
-and gave the same numbers as the table (Jev: 0/18, 0/77, AUC 1.000; basal: 3/18,
-13/77, AUC 0.942). The classifier.dev, GLiNER2.5-Decide, Laya and Kanari rows come from
+**Which rows `run.py` reproduces.** Models with the Jev request format: the official
+Jev API and basal, re-run through this script before publishing with the same numbers
+as the table (Jev: 0/18, 0/77, AUC 1.000; basal: 3/18, 13/77, AUC 0.942), and Clef,
+measured with this script directly on 2 October 2026 (Clef 27B AUC 0.996, Clef-flash
+AUC 0.987, both with the rubric; with the generic question 5/18, 2/77 and 6/18, 4/77).
+The classifier.dev, GLiNER2.5-Decide, Laya and Kanari rows come from
 our internal harness, because those models use other interfaces; they were scored on
 the same answers, the same split and the same threshold.
 
@@ -96,6 +100,9 @@ python run.py --url http://127.0.0.1:8000 --style author-pl
 
 # TypeSafe's Jev
 python run.py --url https://api.typesafe.ai --key $TYPESAFEAI_KEY --model jev-latest --style jev-rubric
+
+# Cloudflare Clef on Workers AI (token from the "Workers AI" template)
+python run.py --endpoint https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/ai/run/@cf/cloudflare/clef               --key $CLOUDFLARE_AUTH_TOKEN --style jev-rubric
 ```
 
 Standard library only, Python 3.10+. Question styles:
